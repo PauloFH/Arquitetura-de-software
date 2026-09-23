@@ -1,0 +1,765 @@
+Model SysADLModel ;
+
+package SysADL.types {
+
+    // Tipos primitivos
+    value type Int { }
+    value type Boolean { }
+    value type String { }
+    value type Void { }
+    value type Real { }
+
+    // Dimensão e unidade
+    dimension Data
+    unit DataUnit { dimension = Data }
+    value type DataType { dimension = Data }
+
+    dimension Horario
+    unit HorarioStandardTime
+    value type HorarioStandardTimeType {
+        unit = HorarioStandardTime
+        dimension = Horario
+    }
+
+    dimension Tempo
+    unit TempoStandard
+    value type Duration {
+        unit = TempoStandard
+        dimension = Tempo
+    }
+
+    dimension Moeda
+    unit MoedaBRL
+    value type Money {
+        unit = MoedaBRL
+        dimension = Moeda
+    }
+
+    // Enums
+    enum PontoAcesso {
+        Entrada ,
+        Saida
+    }
+
+    enum TipoOperacao {
+        Publico ,
+        Privado
+    }
+
+    enum FormaPagamento {
+        Pix ,
+        CartaoCredito ,
+        CartaoDebito ,
+        Dinheiro
+    }
+
+    enum StatusPagamento {
+        EmCarencia ,
+        NaoPago ,
+        PagoDentroTolerancia ,
+        PagoToleranciaExpirada
+    }
+
+    enum MotivoBloqueio {
+        Nenhum ,
+        SemVagas ,
+        NaoPago ,
+        ToleranciaExpirada ,
+        TicketNaoIdentificado ,
+        MensalistaInvalido
+    }
+
+    enum TipoAlerta {
+        Evasao ,
+        ChamadaInterfone ,
+        FalhaDispositivo
+    }
+
+    enum TipoComandoOperador {
+        AbrirCancela ,
+        RegistrarTicketPerdido
+    }
+
+    // Identificação
+    datatype Placa {
+        attributes :
+            valor : String ;
+    }
+
+    datatype Barcode {
+        attributes :
+            codigo : String ;
+    }
+
+    datatype CartaoMensalista {
+        attributes :
+            numero : String ;
+    }
+
+    datatype DataHorario {
+        attributes :
+            data : DataType ;
+            hora : HorarioStandardTimeType ;
+    }
+
+    // Acesso (entrada e saída usam o mesmo protocolo)
+    datatype SolicitacaoAcesso {
+        attributes :
+            ponto   : PontoAcesso ;
+            placa   : Placa ;
+            barcode : Barcode ;
+            cartao  : CartaoMensalista ;
+            horario : DataHorario ;
+    }
+
+    datatype DecisaoAcesso {
+        attributes :
+            ponto    : PontoAcesso ;
+            liberado : Boolean ;
+            motivo   : MotivoBloqueio ;
+    }
+
+    datatype Ticket {
+        attributes :
+            id             : String ;
+            barcode        : Barcode ;
+            placa          : Placa ;
+            horarioEntrada : DataHorario ;
+    }
+
+    datatype EventoPassagem {
+        attributes :
+            ponto      : PontoAcesso ;
+            placa      : Placa ;
+            horario    : DataHorario ;
+            autorizada : Boolean ;
+            imagem     : String ;
+    }
+
+    // Pagamento
+    datatype ConsultaTicket {
+        attributes :
+            barcode : Barcode ;
+            placa   : Placa ;
+    }
+
+    datatype SituacaoTicket {
+        attributes :
+            ticket        : Ticket ;
+            horasCobradas : Int ;
+            valorDevido   : Money ;
+            limiteSaida   : DataHorario ;
+            status        : StatusPagamento ;
+            exigeBarcode  : Boolean ;
+    }
+
+    datatype RegistroPagamento {
+        attributes :
+            ticketId : String ;
+            valor    : Money ;
+            forma    : FormaPagamento ;
+            horario  : DataHorario ;
+    }
+
+    datatype Comprovante {
+        attributes :
+            ticketId         : String ;
+            placa            : Placa ;
+            horarioEntrada   : DataHorario ;
+            horarioPagamento : DataHorario ;
+            valorPago        : Money ;
+            forma            : FormaPagamento ;
+            limiteSaida      : DataHorario ;
+    }
+
+    // Vagas e monitoramento
+    datatype ControleVagas {
+        attributes :
+            vagasOcupadas : Int ;
+            vagasLivres   : Int ;
+    }
+
+    datatype EstatisticasOperacionais {
+        attributes :
+            taxaOcupacao     : Real ;
+            fluxoEntrada     : Int ;
+            fluxoSaida       : Int ;
+            vagasDisponiveis : Int ;
+    }
+
+    datatype Alerta {
+        attributes :
+            tipo    : TipoAlerta ;
+            ponto   : PontoAcesso ;
+            placa   : Placa ;
+            horario : DataHorario ;
+    }
+
+    // Operação e configuração
+    datatype ConfiguracaoEstacionamento {
+        attributes :
+            capacidade         : Int ;
+            tipoOperacao       : TipoOperacao ;
+            valorEntrada       : Money ;
+            valorHoraAdicional : Money ;
+            tolerancia         : Duration ;
+            carencia           : Duration ;
+            taxaSuporte        : Money ;
+    }
+
+    datatype CadastroMensalista {
+        attributes :
+            cartao   : CartaoMensalista ;
+            placa    : Placa ;
+            validade : DataType ;
+    }
+
+    datatype ComandoOperador {
+        attributes :
+            tipo    : TipoComandoOperador ;
+            ponto   : PontoAcesso ;
+            placa   : Placa ;
+            horario : DataHorario ;
+    }
+}
+
+
+package EstacionamentoSystemPorts {
+    import SysADL.types ;
+
+    port def SolicitacaoAcessoIPT { flow in SolicitacaoAcesso }
+    port def SolicitacaoAcessoOPT { flow out SolicitacaoAcesso }
+
+    port def DecisaoAcessoIPT { flow in DecisaoAcesso }
+    port def DecisaoAcessoOPT { flow out DecisaoAcesso }
+
+    port def TicketIPT { flow in Ticket }
+    port def TicketOPT { flow out Ticket }
+
+    port def EventoPassagemIPT { flow in EventoPassagem }
+    port def EventoPassagemOPT { flow out EventoPassagem }
+
+    port def ConsultaTicketIPT { flow in ConsultaTicket }
+    port def ConsultaTicketOPT { flow out ConsultaTicket }
+
+    port def SituacaoTicketIPT { flow in SituacaoTicket }
+    port def SituacaoTicketOPT { flow out SituacaoTicket }
+
+    port def RegistroPagamentoIPT { flow in RegistroPagamento }
+    port def RegistroPagamentoOPT { flow out RegistroPagamento }
+
+    port def ComprovanteIPT { flow in Comprovante }
+    port def ComprovanteOPT { flow out Comprovante }
+
+    port def ControleVagasIPT { flow in ControleVagas }
+    port def ControleVagasOPT { flow out ControleVagas }
+
+    port def EstatisticasOperacionaisIPT { flow in EstatisticasOperacionais }
+    port def EstatisticasOperacionaisOPT { flow out EstatisticasOperacionais }
+
+    port def AlertaIPT { flow in Alerta }
+    port def AlertaOPT { flow out Alerta }
+
+    port def ConfiguracaoEstacionamentoIPT { flow in ConfiguracaoEstacionamento }
+    port def ConfiguracaoEstacionamentoOPT { flow out ConfiguracaoEstacionamento }
+
+    port def CadastroMensalistaIPT { flow in CadastroMensalista }
+    port def CadastroMensalistaOPT { flow out CadastroMensalista }
+
+    port def ComandoOperadorIPT { flow in ComandoOperador }
+    port def ComandoOperadorOPT { flow out ComandoOperador }
+}
+
+
+package EstacionamentoSystemConnectors {
+    import SysADL.types ;
+    import EstacionamentoSystemPorts ;
+
+    connector def SolicitacaoAcessoCN {
+        participants :
+            ~ origem  : SolicitacaoAcessoOPT ;
+            ~ destino : SolicitacaoAcessoIPT ;
+        flows : SolicitacaoAcesso from origem to destino
+    }
+
+    connector def DecisaoAcessoCN {
+        participants :
+            ~ origem  : DecisaoAcessoOPT ;
+            ~ destino : DecisaoAcessoIPT ;
+        flows : DecisaoAcesso from origem to destino
+    }
+
+    connector def TicketCN {
+        participants :
+            ~ origem  : TicketOPT ;
+            ~ destino : TicketIPT ;
+        flows : Ticket from origem to destino
+    }
+
+    connector def EventoPassagemCN {
+        participants :
+            ~ origem  : EventoPassagemOPT ;
+            ~ destino : EventoPassagemIPT ;
+        flows : EventoPassagem from origem to destino
+    }
+
+    connector def ConsultaTicketCN {
+        participants :
+            ~ origem  : ConsultaTicketOPT ;
+            ~ destino : ConsultaTicketIPT ;
+        flows : ConsultaTicket from origem to destino
+    }
+
+    connector def SituacaoTicketCN {
+        participants :
+            ~ origem  : SituacaoTicketOPT ;
+            ~ destino : SituacaoTicketIPT ;
+        flows : SituacaoTicket from origem to destino
+    }
+
+    connector def RegistroPagamentoCN {
+        participants :
+            ~ origem  : RegistroPagamentoOPT ;
+            ~ destino : RegistroPagamentoIPT ;
+        flows : RegistroPagamento from origem to destino
+    }
+
+    connector def ComprovanteCN {
+        participants :
+            ~ origem  : ComprovanteOPT ;
+            ~ destino : ComprovanteIPT ;
+        flows : Comprovante from origem to destino
+    }
+
+    connector def ControleVagasCN {
+        participants :
+            ~ origem  : ControleVagasOPT ;
+            ~ destino : ControleVagasIPT ;
+        flows : ControleVagas from origem to destino
+    }
+
+    connector def EstatisticasOperacionaisCN {
+        participants :
+            ~ origem  : EstatisticasOperacionaisOPT ;
+            ~ destino : EstatisticasOperacionaisIPT ;
+        flows : EstatisticasOperacionais from origem to destino
+    }
+
+    connector def AlertaCN {
+        participants :
+            ~ origem  : AlertaOPT ;
+            ~ destino : AlertaIPT ;
+        flows : Alerta from origem to destino
+    }
+
+    connector def ConfiguracaoEstacionamentoCN {
+        participants :
+            ~ origem  : ConfiguracaoEstacionamentoOPT ;
+            ~ destino : ConfiguracaoEstacionamentoIPT ;
+        flows : ConfiguracaoEstacionamento from origem to destino
+    }
+
+    connector def CadastroMensalistaCN {
+        participants :
+            ~ origem  : CadastroMensalistaOPT ;
+            ~ destino : CadastroMensalistaIPT ;
+        flows : CadastroMensalista from origem to destino
+    }
+
+    connector def ComandoOperadorCN {
+        participants :
+            ~ origem  : ComandoOperadorOPT ;
+            ~ destino : ComandoOperadorIPT ;
+        flows : ComandoOperador from origem to destino
+    }
+}
+
+
+package EstacionamentoSystemComponents {
+    import SysADL.types ;
+    import EstacionamentoSystemPorts ;
+    import EstacionamentoSystemConnectors ;
+
+    // Visão geral: subsistemas como caixas-pretas. Os dispositivos de fronteira
+    // (câmeras, cancelas, leitores, botão, impressora, interfone, totem, sensores)
+    // ficam dentro de cada subsistema e são detalhados nos IBDs por subsistema.
+
+    // Câmera, botão de ticket, impressora, leitor de cartão, cancela e sensor de passagem
+    component def SubsistemaEntradaCP {
+        ports :
+            entSolicitacao : SolicitacaoAcessoOPT ;
+            entDecisao     : DecisaoAcessoIPT ;
+            entTicket      : TicketIPT ;
+            entPassagem    : EventoPassagemOPT ;
+    }
+
+    // Câmera, leitor de código de barras, leitor de cartão, cancela, sensor de passagem e interfone
+    component def SubsistemaSaidaCP {
+        ports :
+            saiSolicitacao : SolicitacaoAcessoOPT ;
+            saiDecisao     : DecisaoAcessoIPT ;
+            saiPassagem    : EventoPassagemOPT ;
+            saiChamado     : AlertaOPT ;
+    }
+
+    // Totem: leitor de código de barras, teclado, Pix, maquininha, moedeiro/noteiro e impressora
+    component def SubsistemaPagamentoCP {
+        ports :
+            pagConsulta    : ConsultaTicketOPT ;
+            pagSituacao    : SituacaoTicketIPT ;
+            pagRegistro    : RegistroPagamentoOPT ;
+            pagComprovante : ComprovanteIPT ;
+    }
+
+    // Sensores de vaga, contador e painel de vagas disponíveis
+    component def SubsistemaVagasCP {
+        ports :
+            vagPassagem : EventoPassagemIPT ;
+            vagControle : ControleVagasOPT ;
+    }
+
+    // Terminal do operador/gestor: configuração, mensalistas, alertas e estatísticas
+    component def SubsistemaOperacaoCP {
+        ports :
+            opeConfiguracao : ConfiguracaoEstacionamentoOPT ;
+            opeMensalista   : CadastroMensalistaOPT ;
+            opeComando      : ComandoOperadorOPT ;
+            opeAlerta       : AlertaIPT ;
+            opeEstatisticas : EstatisticasOperacionaisIPT ;
+    }
+
+    // Sessões, tarifação, decisão de acesso, mensalistas, evasão e log
+    component def NucleoGestaoCP {
+        ports :
+            nucSolicitacaoEnt : SolicitacaoAcessoIPT ;
+            nucDecisaoEnt     : DecisaoAcessoOPT ;
+            nucTicket         : TicketOPT ;
+            nucPassagemEnt    : EventoPassagemIPT ;
+            nucSolicitacaoSai : SolicitacaoAcessoIPT ;
+            nucDecisaoSai     : DecisaoAcessoOPT ;
+            nucPassagemSai    : EventoPassagemIPT ;
+            nucChamado        : AlertaIPT ;
+            nucConsulta       : ConsultaTicketIPT ;
+            nucSituacao       : SituacaoTicketOPT ;
+            nucRegistro       : RegistroPagamentoIPT ;
+            nucComprovante    : ComprovanteOPT ;
+            nucPassagemVagas  : EventoPassagemOPT ;
+            nucControleVagas  : ControleVagasIPT ;
+            nucConfiguracao   : ConfiguracaoEstacionamentoIPT ;
+            nucMensalista     : CadastroMensalistaIPT ;
+            nucComando        : ComandoOperadorIPT ;
+            nucAlerta         : AlertaOPT ;
+            nucEstatisticas   : EstatisticasOperacionaisOPT ;
+    }
+
+    // Visão geral: topologia em estrela, todo subsistema conversa só com o núcleo
+    component def SistemaDeEstacionamento {
+        configuration {
+            components :
+                entrada : SubsistemaEntradaCP {
+                    using ports :
+                        entSolicitacao : SolicitacaoAcessoOPT ;
+                        entDecisao     : DecisaoAcessoIPT ;
+                        entTicket      : TicketIPT ;
+                        entPassagem    : EventoPassagemOPT ;
+                }
+                saida : SubsistemaSaidaCP {
+                    using ports :
+                        saiSolicitacao : SolicitacaoAcessoOPT ;
+                        saiDecisao     : DecisaoAcessoIPT ;
+                        saiPassagem    : EventoPassagemOPT ;
+                        saiChamado     : AlertaOPT ;
+                }
+                pagamento : SubsistemaPagamentoCP {
+                    using ports :
+                        pagConsulta    : ConsultaTicketOPT ;
+                        pagSituacao    : SituacaoTicketIPT ;
+                        pagRegistro    : RegistroPagamentoOPT ;
+                        pagComprovante : ComprovanteIPT ;
+                }
+                vagas : SubsistemaVagasCP {
+                    using ports :
+                        vagPassagem : EventoPassagemIPT ;
+                        vagControle : ControleVagasOPT ;
+                }
+                operacao : SubsistemaOperacaoCP {
+                    using ports :
+                        opeConfiguracao : ConfiguracaoEstacionamentoOPT ;
+                        opeMensalista   : CadastroMensalistaOPT ;
+                        opeComando      : ComandoOperadorOPT ;
+                        opeAlerta       : AlertaIPT ;
+                        opeEstatisticas : EstatisticasOperacionaisIPT ;
+                }
+                nucleo : NucleoGestaoCP {
+                    using ports :
+                        nucSolicitacaoEnt : SolicitacaoAcessoIPT ;
+                        nucDecisaoEnt     : DecisaoAcessoOPT ;
+                        nucTicket         : TicketOPT ;
+                        nucPassagemEnt    : EventoPassagemIPT ;
+                        nucSolicitacaoSai : SolicitacaoAcessoIPT ;
+                        nucDecisaoSai     : DecisaoAcessoOPT ;
+                        nucPassagemSai    : EventoPassagemIPT ;
+                        nucChamado        : AlertaIPT ;
+                        nucConsulta       : ConsultaTicketIPT ;
+                        nucSituacao       : SituacaoTicketOPT ;
+                        nucRegistro       : RegistroPagamentoIPT ;
+                        nucComprovante    : ComprovanteOPT ;
+                        nucPassagemVagas  : EventoPassagemOPT ;
+                        nucControleVagas  : ControleVagasIPT ;
+                        nucConfiguracao   : ConfiguracaoEstacionamentoIPT ;
+                        nucMensalista     : CadastroMensalistaIPT ;
+                        nucComando        : ComandoOperadorIPT ;
+                        nucAlerta         : AlertaOPT ;
+                        nucEstatisticas   : EstatisticasOperacionaisOPT ;
+                }
+
+            connectors :
+                // Entrada ↔ núcleo
+                solicitaEntrada : SolicitacaoAcessoCN bindings entSolicitacao = nucSolicitacaoEnt ;
+                decideEntrada   : DecisaoAcessoCN bindings nucDecisaoEnt = entDecisao ;
+                emiteTicket     : TicketCN bindings nucTicket = entTicket ;
+                passaEntrada    : EventoPassagemCN bindings entPassagem = nucPassagemEnt ;
+
+                // Saída ↔ núcleo
+                solicitaSaida   : SolicitacaoAcessoCN bindings saiSolicitacao = nucSolicitacaoSai ;
+                decideSaida     : DecisaoAcessoCN bindings nucDecisaoSai = saiDecisao ;
+                passaSaida      : EventoPassagemCN bindings saiPassagem = nucPassagemSai ;
+                chamaInterfone  : AlertaCN bindings saiChamado = nucChamado ;
+
+                // Pagamento ↔ núcleo
+                consultaTicket  : ConsultaTicketCN bindings pagConsulta = nucConsulta ;
+                informaSituacao : SituacaoTicketCN bindings nucSituacao = pagSituacao ;
+                registraPgto    : RegistroPagamentoCN bindings pagRegistro = nucRegistro ;
+                emiteComprov    : ComprovanteCN bindings nucComprovante = pagComprovante ;
+
+                // Vagas ↔ núcleo
+                informaPassagem : EventoPassagemCN bindings nucPassagemVagas = vagPassagem ;
+                informaVagas    : ControleVagasCN bindings vagControle = nucControleVagas ;
+
+                // Operação ↔ núcleo
+                configura       : ConfiguracaoEstacionamentoCN bindings opeConfiguracao = nucConfiguracao ;
+                cadastraMensal  : CadastroMensalistaCN bindings opeMensalista = nucMensalista ;
+                comandaOperador : ComandoOperadorCN bindings opeComando = nucComando ;
+                alertaOperador  : AlertaCN bindings nucAlerta = opeAlerta ;
+                publicaEstat    : EstatisticasOperacionaisCN bindings nucEstatisticas = opeEstatisticas ;
+        }
+    }
+}
+
+
+Requirement SistemaGestaoControleEstacionamento ( 1.0 ) { 
+	text = "O sistema deve oferecer uma solução eficiente, segura e escalável para o gerenciamento de vagas, controlando o fluxo de veículos, automatizando o cálculo de tarifas, registrando entradas e saídas e garantindo a integridade das informações em operação contínua 24x7" 
+	
+	Requirement ConfigurarEstacionamentoFR ( 1.1 ) {
+		text = "O sistema deve permitir o cadastro e configuração do estacionamento, incluindo capacidade total de vagas, tipo de operação e regras específicas de funcionamento"
+
+		Requirement DefinirCapacidadeFR ( 1.1.1 ) {
+			text = "O sistema deve permitir a definição da capacidade total de vagas do estacionamento"
+			satisfied by EstacionamentoSystemComponents.SubsistemaOperacaoCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement DefinirTipoOperacaoFR ( 1.1.2 ) {
+			text = "O sistema deve permitir a definição do tipo de operação do estacionamento, podendo ser público ou privado"
+			satisfied by EstacionamentoSystemComponents.SubsistemaOperacaoCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement DefinirRegrasCobrancaFR ( 1.1.3 ) {
+			text = "O sistema deve permitir que o gestor configure os parâmetros de cobrança: valor de entrada (que inclui a primeira hora), valor por hora adicional, período de tolerância após o pagamento, período de carência e taxa de suporte por ticket perdido"
+			satisfied by EstacionamentoSystemComponents.SubsistemaOperacaoCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement CadastrarMensalistaFR ( 1.1.4 ) {
+			text = "O sistema deve permitir o cadastro de mensalistas, com placa(s) do veículo e cartão de acesso próprio, com controle de validade"
+			satisfied by EstacionamentoSystemComponents.SubsistemaOperacaoCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+	}
+
+	Requirement ControlarEntradaSaidaFR ( 1.2 ) { 
+		text = "O sistema deve garantir os requisitos funcionais relacionados ao controle de entrada e saída de veículos"
+
+		Requirement RegistrarEntradaFR ( 1.2.1 ) { 
+			text = "O sistema deve ler a placa do veículo ao chegar à entrada e registrar a entrada, com placa e horário, quando o ticket for emitido ou o cartão de mensalista for validado"
+			satisfied by EstacionamentoSystemComponents.SubsistemaEntradaCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement GerarTicketCodigoBarrasFR ( 1.2.2 ) { 
+			text = "O sistema deve emitir o ticket somente quando o usuário acionar o botão da entrada, impresso com código de barras único, horário de entrada e placa identificada"
+			satisfied by EstacionamentoSystemComponents.SubsistemaEntradaCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement RegistrarSaidaFR ( 1.2.3 ) { 
+			text = "Na saída, o sistema deve identificar o ticket pela leitura da placa e, caso a leitura falhe ou a placa lida não corresponda a um ticket aberto, pela leitura do código de barras"
+			satisfied by EstacionamentoSystemComponents.SubsistemaSaidaCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement LiberarSaidaFR ( 1.2.4 ) { 
+			text = "O sistema deve liberar a cancela de saída somente se o ticket estiver pago e dentro do período de tolerância, estiver dentro do período de carência ou pertencer a mensalista válido, salvo em caso de emergência"
+			satisfied by EstacionamentoSystemComponents.SubsistemaSaidaCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement ControleFluxoCatracaFR ( 1.2.5 ) { 
+			text = "O sistema deve garantir que apenas um veículo passe na catraca por vez, tanto na entrada quanto na saída"
+			satisfied by EstacionamentoSystemComponents.SubsistemaEntradaCP, EstacionamentoSystemComponents.SubsistemaSaidaCP ;
+		}
+
+		Requirement EntradaSemPlacaFR ( 1.2.6 ) {
+			text = "Caso a placa não seja lida na entrada, o sistema deve emitir o ticket sem placa, e a identificação desse ticket passa a depender do código de barras"
+			satisfied by EstacionamentoSystemComponents.SubsistemaEntradaCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement AcessoMensalistaFR ( 1.2.7 ) {
+			text = "O sistema deve identificar o mensalista pela placa cadastrada ou pela apresentação do cartão, tanto na entrada quanto na saída, registrando a passagem e liberando a cancela automaticamente, sem emissão de ticket nem pagamento no totem, enquanto o cadastro estiver válido"
+			satisfied by EstacionamentoSystemComponents.SubsistemaEntradaCP, EstacionamentoSystemComponents.SubsistemaSaidaCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement AtendimentoInterfoneFR ( 1.2.8 ) {
+			text = "Caso nem a placa nem o código de barras identifiquem o ticket na saída, o sistema deve manter a cancela fechada e disponibilizar interfone para acionamento de um atendente"
+			satisfied by EstacionamentoSystemComponents.SubsistemaSaidaCP, EstacionamentoSystemComponents.SubsistemaOperacaoCP ;
+		}
+
+		Requirement DetectarEvasaoFR ( 1.2.9 ) {
+			text = "O sistema deve registrar a placa e as imagens das câmeras de veículos que saírem sem liberação e alertar o operador quando essa placa for lida novamente na entrada"
+			satisfied by EstacionamentoSystemComponents.SubsistemaSaidaCP, EstacionamentoSystemComponents.NucleoGestaoCP, EstacionamentoSystemComponents.SubsistemaOperacaoCP ;
+		}
+	}
+
+	Requirement ControlarPagamentoFR ( 1.3 ) { 
+		text = "O sistema deve garantir todos os requisitos funcionais relacionados ao pagamento por código de barras ou placa no totem"
+		
+		Requirement CalculoTarifaFR ( 1.3.1 ) { 
+			text = "O sistema deve contar as horas de permanência a partir do horário de entrada, arredondando qualquer fração para a hora cheia seguinte, com mínimo de uma hora, e cobrar valor de entrada mais valor adicional vezes (horas - 1), sem teto diário nem tarifa de pernoite. Valores padrão: R$ 12,00 de entrada, incluindo a primeira hora, e R$ 2,00 por hora adicional"
+			satisfied by EstacionamentoSystemComponents.NucleoGestaoCP ;
+			derive DefinirRegrasCobrancaFR ;
+		}
+
+		Requirement PagamentoCodigoBarrasTotemFR ( 1.3.2 ) { 
+			text = "O sistema deve permitir o pagamento por meio da leitura do código de barras do ticket em totens de autoatendimento"
+			satisfied by EstacionamentoSystemComponents.SubsistemaPagamentoCP ;
+		}
+
+		Requirement PagamentoPlacaTotemFR ( 1.3.3 ) { 
+			text = "O sistema deve permitir o pagamento por meio da digitação da placa no totem; havendo mais de um ticket aberto para a placa, o sistema deve exigir o código de barras"
+			satisfied by EstacionamentoSystemComponents.SubsistemaPagamentoCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement FormasPagamentoFR ( 1.3.4 ) {
+			text = "O sistema deve permitir que o usuário escolha a forma de pagamento entre Pix, cartão de crédito, cartão de débito e dinheiro, recusando o pagamento em dinheiro quando não houver troco disponível"
+			satisfied by EstacionamentoSystemComponents.SubsistemaPagamentoCP ;
+		}
+
+		Requirement VisualizarPrecificacaoFR ( 1.3.5 ) { 
+			text = "O sistema deve exibir ao usuário, antes do pagamento, o tempo de permanência, o valor a pagar e o horário limite de saída"
+			satisfied by EstacionamentoSystemComponents.SubsistemaPagamentoCP ;
+		}
+
+		Requirement EmitirComprovanteFR ( 1.3.6 ) { 
+			text = "Após a finalização da operação, o sistema deve emitir comprovantes contendo as informações relevantes da utilização do estacionamento"
+			satisfied by EstacionamentoSystemComponents.SubsistemaPagamentoCP ;
+		}
+
+		Requirement StatusPagamentoFR ( 1.3.7 ) { 
+			text = "O sistema deve saber o status do pagamento dos veículos/tickets, incluindo em carência, não pago, pago dentro do tempo de tolerância, ou pago com tolerância expirada"
+			satisfied by EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement RevalidarPagamentoSaidaFR ( 1.3.8 ) {
+			text = "No momento da saída, o sistema deve revalidar o pagamento e liberar a cancela somente se a saída ocorrer até o fim da última hora paga acrescido do período de tolerância (padrão: 30 minutos)"
+			satisfied by EstacionamentoSystemComponents.SubsistemaSaidaCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement CobrarExcedenteToleranciaFR ( 1.3.9 ) {
+			text = "Caso a tolerância expire antes da saída, o sistema deve bloquear a cancela e orientar o usuário a retornar ao totem, que cobra a diferença entre o valor recalculado no momento e o valor já pago e define um novo horário limite de saída"
+			satisfied by EstacionamentoSystemComponents.SubsistemaSaidaCP, EstacionamentoSystemComponents.SubsistemaPagamentoCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement CarenciaFR ( 1.3.10 ) {
+			text = "O sistema não deve cobrar veículos que saírem dentro do período de carência contado a partir da entrada (padrão: 15 minutos), liberando a saída sem passagem pelo totem"
+			satisfied by EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement TicketPerdidoFR ( 1.3.11 ) {
+			text = "Em caso de perda do ticket, o sistema deve localizar a sessão pela placa; se a placa não identificar a sessão, o atendimento deve ser feito pelo suporte, com cobrança da taxa de suporte configurada"
+			satisfied by EstacionamentoSystemComponents.SubsistemaOperacaoCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+	} 
+
+	Requirement ControlarVagasFR ( 1.4 ) { 
+		text = "O sistema deve manter o controle de vagas em tempo real, atualizando automaticamente a quantidade de vagas disponíveis conforme entradas e saídas são registradas"
+
+		Requirement AtualizarVagasFR ( 1.4.1 ) { 
+			text = "O sistema deve atualizar automaticamente a contagem de vagas livres e ocupadas a cada registro de entrada ou saída"
+			satisfied by EstacionamentoSystemComponents.SubsistemaVagasCP ;
+		}
+
+		Requirement ExibirVagasFR ( 1.4.2 ) { 
+			text = "O sistema deve exibir em display o número de vagas disponíveis em tempo real"
+			satisfied by EstacionamentoSystemComponents.SubsistemaVagasCP ;
+			derive AtualizarVagasFR ;
+		}
+
+		Requirement BloquearEntradaFR ( 1.4.3 ) { 
+			text = "O sistema deve bloquear a entrada de veículos quando não houver vagas disponíveis"
+			satisfied by EstacionamentoSystemComponents.SubsistemaEntradaCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+	}
+
+	Requirement MonitorarOperacaoFR ( 1.5 ) {
+		text = "O sistema deve oferecer funcionalidades de monitoramento, permitindo a visualização do estado atual do estacionamento"
+
+		Requirement VisualizarOcupacaoFR ( 1.5.1 ) {
+			text = "O sistema deve permitir a visualização da taxa de ocupação atual do estacionamento"
+			satisfied by EstacionamentoSystemComponents.SubsistemaOperacaoCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement VisualizarFluxoFR ( 1.5.2 ) {
+			text = "O sistema deve permitir a visualização do fluxo de veículos, incluindo entradas e saídas"
+			satisfied by EstacionamentoSystemComponents.SubsistemaOperacaoCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement VisualizarEstatisticasFR ( 1.5.3 ) {
+			text = "O sistema deve apresentar estatísticas operacionais relevantes para a gestão do estacionamento"
+			satisfied by EstacionamentoSystemComponents.SubsistemaOperacaoCP, EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+	}
+
+	Requirement ValidarTicketFR ( 1.6 ) {
+		text = "O sistema deve validar os tickets por meio de código de barras ou consulta pela placa, garantindo a integridade e unicidade da sessão de estacionamento"
+
+		Requirement ValidarPorCodigoBarrasFR ( 1.6.1 ) {
+			text = "O sistema deve permitir a validação do ticket por meio da leitura do código de barras"
+			satisfied by EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement ValidarPorPlacaFR ( 1.6.2 ) {
+			text = "O sistema deve permitir a validação do ticket por meio da consulta pela placa do veículo"
+			satisfied by EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+
+		Requirement GarantirUnicidadeCodigoBarrasFR ( 1.6.3 ) {
+			text = "O sistema deve garantir que cada código de barras gerado seja único e associado a uma única sessão de estacionamento"
+			satisfied by EstacionamentoSystemComponents.NucleoGestaoCP ;
+		}
+	}
+
+
+}
+
+Requirement QualidadeNFR ( 2.0 ) {
+	text = "O sistema deve atender aos requisitos de qualidade essenciais para sua operação contínua e confiável"
+
+	Requirement DisponibilidadeNFR ( 2.1 ) {
+		text = "O sistema deve operar 24 horas por dia, 7 dias por semana, com disponibilidade mínima de 99,5% ao mês, e a cancela deve poder ser aberta manualmente pelo atendente em caso de falha"
+	}
+
+	Requirement DesempenhoNFR ( 2.2 ) {
+		text = "O desempenho deve ser adequado, garantindo que operações como leitura de placa e de código de barras, validação de ticket e registro de entrada/saída sejam processadas em até 2 segundos"
+	}
+
+	Requirement SegurancaNFR ( 2.3 ) {
+		text = "O sistema deve gerar códigos de barras únicos e não sequenciais, exigir autenticação para acesso às funções administrativas e registrar em log, com data, hora e responsável, toda entrada, saída, pagamento, abertura manual de cancela e alteração de tarifa"
+	}
+
+	Requirement UsabilidadeNFR ( 2.4 ) {
+		text = "O pagamento no totem deve ser concluído em no máximo 4 etapas (identificar ticket, conferir valor, escolher forma de pagamento, pagar), com mensagens em português e horário limite de saída exibido em destaque"
+	}
+}
